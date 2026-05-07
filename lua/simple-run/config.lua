@@ -8,21 +8,21 @@ local defaults = {
         local filepath= vim.fn.expand("%:p")
         local filename = vim.fn.expand("%:r")
         return string.format("gcc -g -o %s %s && ./%s",
-          vim.fn.shellescape(filename),
+          vim.fn.fnamemodify(filename, ":t"),
           vim.fn.shellescape(filepath),
-          vim.fn.shellescape(filename))
+          vim.fn.fnamemodify(filename, ":t"))
       end,
       build = function()
         local c_files = vim.fn.globpath(".", "*.c", false, true)
-        if #c_files == 0 then
-          print("No c files found")
+        if #c_files < 2 then
+          print("Need at least 2 files to build")
           return
         end
         return "gcc -g " .. table.concat(c_files, " ") .. " -o program && ./program"
       end,
       debug = function()
-        local name_without_ext = vim.fn.expand("%:r")
-        return string.format("gdb -q %s", name_without_ext)
+        local filename = vim.fn.expand("%:r")
+        return string.format("gdb -q %s", vim.fn.fnamemodify(filename,":t"))
       end,
     },
     go = {
