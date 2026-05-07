@@ -1,5 +1,7 @@
 local M = {}
 local defaults = {
+  keymap = "<F2>",
+  prompt_text = "Compile(1), Build(2) or Debug(3)?: ",
   languages = {
     c = {
       compile = function()
@@ -57,25 +59,24 @@ local defaults = {
       end,
     },
   },
-  keymap = "<F2>",
-  prompt_text = "Compile(1), Build(2) or Debug(3)?: ",
 }
 
 M.config = vim.deepcopy(defaults)
 
+
 function M.setup(user_opts)
   user_opts = user_opts or {}
   M.config = vim.tbl_deep_extend("force", vim.deepcopy(defaults), user_opts)
+  
   if user_opts.languages then
     for lang, user_lang_config in pairs(user_opts.languages) do
       if M.config.languages[lang] then
         M.config.languages[lang] = vim.tbl_deep_extend("force", M.config.languages[lang], user_lang_config)
-    else
-      M.config.languages[lang] = user_lang_config
+      else
+        M.config.languages[lang] = user_lang_config
+      end
     end
   end
-end
-return M.config
 end
 
 function M.get()
