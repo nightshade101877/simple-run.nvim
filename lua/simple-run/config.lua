@@ -7,12 +7,12 @@ local defaults = {
     c = {
       compile = function()
         local filepath= vim.fn.expand("%:p")
-        local filename = vim.fn.expand("%:r")
+        local filename = vim.fn.expand("%:t:r")
         vim.g.has_compiled = true
         return string.format("gcc -g -o %s %s && ./%s",
-          vim.fn.fnamemodify(filename, ":t"),
+          vim.fn.shellescape(filename),
           vim.fn.shellescape(filepath),
-          vim.fn.fnamemodify(filename, ":t"))
+          vim.fn.shellescape(filename))
       end,
       build = function()
         local c_files = vim.fn.globpath(".", "*.c", false, true)
@@ -20,14 +20,50 @@ local defaults = {
           print("Need at least 2 files to build")
           return
         end
-        return "gcc -g " .. table.concat(c_files, " ") .. " -o program && ./program"
+        local default_name = "program"
+        local binary_name = vim.fn.input("Binary name: ", default_name)
+        if binary_name == "" then
+          binary_name = default_name
+        end
+        return "gcc -g " .. table.concat(c_files, " ") .. " -o " .. vim.fn.shellescape(binary_name) .. " && ./" .. vim.fn.shellescape(binary_name)
       end,
       debug = function()
-        local filename = vim.fn.expand("%:r")
-        local file = vim.fn.fnamemodify(filename, ":t")
+        local filename = vim.fn.expand("%:t:r")
         local has_compiled = vim.g.has_compiled
         if has_compiled then
-          return string.format("gdb -q ./%s", file)
+          return string.format("gdb -q ./%s", vim.fn.shellescape(filename))
+        else
+          vim.notify("Error. No executable found. Compile first!", vim.log.levels.ERROR)
+        end
+      end,
+    },
+    cpp = {
+      compile = function()
+        local filepath = vim.fn.expand("%:p")
+        local filename = vim.fn.expand("%:t:r")
+        vim.g.has_compiled = true
+        return string.format("g++ -g -o %s %s && ./%s",
+        vim.fn.shellescape(filename),
+        vim.fn.shellescape(filepath),
+        vim.fn.shellescape(filename))
+      end,
+      build = function()
+        local cpp_files = vim.fn.globpath(".", "*.cpp", false, true)
+        if #cpp_files < 2 then
+          print("Need at least 2 files to build")
+          return
+        end
+        local default_name = "program"
+        local binary_name = vim.fn.input("Binary name: ", default_name)
+        if binary_name == "" then
+          binary_name = default_name
+        end
+        return "g++ -g " .. table.concat(cpp_files, " ") .. " -o " .. vim.fn.shellescape(binary_name) .. " && ./" .. vim.fn.shellescape(binary_name)
+      end,
+      debug = function()
+        local filename = vim.fn.expand("%:t:r")
+        if vim.g.has_compiled then
+          return string.format("gdb -q ./%s", filename)
         else
           vim.notify("Error. No executable found. Compile first!", vim.log.levels.ERROR)
         end
@@ -36,19 +72,23 @@ local defaults = {
     go = {
       compile = function()
         local filepath = vim.fn.expand("%:p")
-        return string.format("go run %s", filepath)
+        return string.format("go run %s", vim.fn.shellescape(filepath))
       end,
     },
     python = {
       compile = function()
         local filepath= vim.fn.expand("%:p")
-        return string.format("python3 %s", filepath)
+        return string.format("python3 %s", vim.fn.shellescape(filepath))
       end,
+       debug = function()
+         local filepath = vim.fn.expand("%:p")
+         return string.format("python3 -m pdb %s", vim.fn.shellescape(filepath))
+       end,
     },
     sh = {
       compile = function()
         local filepath = vim.fn.expand("%:p")
-        local filename = vim.fn.expand("%")
+        local filename = vim.fn.expand("%:t:r")
         local perm = vim.fn.getfperm(filepath)
         local executable = perm:sub(3, 3) == "x"
           or perm:sub(6, 6) == "x"
