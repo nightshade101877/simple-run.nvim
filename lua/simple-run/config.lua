@@ -1,5 +1,4 @@
 local M = {}
-vim.g.has_compiled = false
 local defaults = {
   keymap = "<F2>",
   prompt_text = "Compile(1), Build(2) or Debug(3)?: ",
@@ -8,7 +7,6 @@ local defaults = {
       compile = function()
         local filepath= vim.fn.expand("%:p")
         local filename = vim.fn.expand("%:t:r")
-        vim.g.has_compiled = true
         return string.format("gcc -g -o %s %s && ./%s",
           vim.fn.shellescape(filename),
           vim.fn.shellescape(filepath),
@@ -29,8 +27,8 @@ local defaults = {
       end,
       debug = function()
         local filename = vim.fn.expand("%:t:r")
-        local has_compiled = vim.g.has_compiled
-        if has_compiled then
+        local filepath = "./" .. filename
+        if vim.fn.executable(filepath) == 1 then
           return string.format("gdb -q ./%s", vim.fn.shellescape(filename))
         else
           vim.notify("Error. No executable found. Compile first!", vim.log.levels.ERROR)
