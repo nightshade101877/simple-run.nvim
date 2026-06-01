@@ -63,7 +63,7 @@ function M.run()
 
   vim.g.simple_run_term = true
 
-  vim.cmd("vsplit | terminal " .. command)
+  vim.cmd("terminal " .. command)
 
   vim.api.nvim_create_autocmd("TermOpen", {
     pattern = "*",
