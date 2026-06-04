@@ -74,7 +74,7 @@ require("simple-run").setup({
 languages = {
 python = {
 compile = function()
-return "pyhton" .. vim.fn.expand("%:P")
+return "python" .. vim.fn.expand("%:P")
 end}}
 })
 ```
