@@ -26,7 +26,7 @@ By default, simple-run.nvim supports:
 
 ```lua
 {
-  "mvera-karisa/simple-run.nvim",
+  "nightshade101877/simple-run.nvim",
   config = function()
     require("simple-run").setup({
       keymap = "your_desired_keybind"
@@ -39,7 +39,7 @@ By default, simple-run.nvim supports:
 
 ```lua
 use {
-  "mvera-karisa/simple-run.nvim",
+  "nightshade101877/simple-run.nvim",
   config = function()
     require("simple-run").setup({
       keymap = "your_desired_keybind"
@@ -54,7 +54,7 @@ The plugin comes with sensible defaults but can be fully customized:
 
 ```lua
 require("simple-run").setup({
-  keymap = "<leader>r",  -- Default keybind for running files
+  keymap = "<leader>r",  -- keybind for running files
   -- Additional configuration options here
 })
 ```
@@ -74,7 +74,7 @@ require("simple-run").setup({
 languages = {
 python = {
 compile = function()
-return "python" .. vim.fn.expand("%:P")
+return "python" .. vim.fn.expand("%:p")
 end}}
 })
 ```
@@ -82,3 +82,7 @@ end}}
 ## License
 
 MIT
+
+## NOTE
+
+Working on an asynchronous version. Coming soon.. :)
