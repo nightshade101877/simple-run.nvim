@@ -78,11 +78,19 @@ return "python" .. vim.fn.expand("%:p")
 end}}
 })
 ```
-
+## Custom Compile Flags
+ 
+ The plugin comes with a config option of adding custom compile flags
+  
+```lua
+require("simple-run").setup({
+        add_flags = {
+                c = { compile_flags = { "-Wall", "-Wextra", "-02" }, linker_flags = { "-lm", "-lreadline" }, debug_flags = { "-tui" } } -- example flags for C
+            }, 
+    })
+```
+The language only supports 3 compiled languages at the time but more are coming soon :-)
 ## License
 
 MIT
 
-## NOTE
-
-Working on an asynchronous version. Coming soon.. :)

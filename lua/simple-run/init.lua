@@ -7,10 +7,12 @@ local M = {}
 function M.setup(opts)
   config.setup(opts)
   local keymap = config.get().keymap
-  if keymap then
+  if keymap and type(keymap) == "string" and keymap ~= "" then
     vim.keymap.set("n", keymap, function()
       M.run()
     end, { desc = "Run/Build/Debug current file" })
+  else
+    vim.notify("No valid keymap configured", vim.log.levels.WARN)
   end
   
   return M

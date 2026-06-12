@@ -2,15 +2,42 @@ local M = {}
 local defaults = {
   keymap = "<F2>",
   prompt_text = "Compile(1), Build(2) or Debug(3)?: ",
+  add_flags = { -- flag options for compiled languages
+    c = {
+      compile_flags = {},
+      linker_flags = {},
+      debug_flags = {},
+    },
+    cpp = {
+      compile_flags = {},
+      linker_flags = {},
+      debug_flags = {},
+    },
+    go = {
+      compile_flags = {},
+      linker_flags = {},
+    },
+  },
   languages = {
     c = {
       compile = function()
-        local filepath= vim.fn.expand("%:p")
+        local filepath = vim.fn.expand("%:p")
         local filename = vim.fn.expand("%:t:r")
-        return string.format("gcc -g -o %s %s && ./%s",
+        local flags = M.config.add_flags.c or { compile_flags = {}, linker_flags = {} }
+        local compile_flags = table.concat(flags.compile_flags, " ")
+        local linker_flags = table.concat(flags.linker_flags, " ")
+        
+        -- Build the compile command with flags
+        local compile_cmd = string.format("gcc -g %s -o %s %s %s && ./%s",
+          compile_flags,
           vim.fn.shellescape(filename),
           vim.fn.shellescape(filepath),
+          linker_flags,
           vim.fn.shellescape(filename))
+        
+        -- Remove extra spaces if flags are empty
+        compile_cmd = compile_cmd:gsub("%s+", " "):gsub("^%s+", "")
+        return compile_cmd
       end,
       build = function()
         local c_files = vim.fn.globpath(".", "*.c", false, true)
@@ -23,13 +50,21 @@ local defaults = {
         if binary_name == "" then
           binary_name = default_name
         end
-        return "gcc -g " .. table.concat(c_files, " ") .. " -o " .. vim.fn.shellescape(binary_name) .. " && ./" .. vim.fn.shellescape(binary_name)
+        
+        local flags = M.config.add_flags.c or { compile_flags = {}, linker_flags = {} }
+        local compile_flags = table.concat(flags.compile_flags, " ")
+        local linker_flags = table.concat(flags.linker_flags, " ")
+        
+        return "gcc -g " .. compile_flags .. " " .. table.concat(c_files, " ") .. " " .. linker_flags .. " -o " .. vim.fn.shellescape(binary_name) .. " && ./" .. vim.fn.shellescape(binary_name)
       end,
       debug = function()
         local filename = vim.fn.expand("%:t:r")
         local filepath = "./" .. filename
+        local flags = M.config.add_flags.c or { debug_flags = {} }
+        local debug_flags = table.concat(flags.debug_flags, " ")
+        
         if vim.fn.executable(filepath) == 1 then
-          return string.format("gdb -q ./%s", vim.fn.shellescape(filename))
+          return string.format("gdb -q %s ./%s", debug_flags, vim.fn.shellescape(filename))
         else
           vim.notify("Error. No executable found. Compile first!", vim.log.levels.ERROR)
         end
@@ -40,10 +75,20 @@ local defaults = {
         local filepath = vim.fn.expand("%:p")
         local filename = vim.fn.expand("%:t:r")
         vim.g.has_compiled = true
-        return string.format("g++ -g -o %s %s && ./%s",
-        vim.fn.shellescape(filename),
-        vim.fn.shellescape(filepath),
-        vim.fn.shellescape(filename))
+        
+        local flags = M.config.add_flags.cpp or { compile_flags = {}, linker_flags = {} }
+        local compile_flags = table.concat(flags.compile_flags, " ")
+        local linker_flags = table.concat(flags.linker_flags, " ")
+        
+        local compile_cmd = string.format("g++ -g %s -o %s %s %s && ./%s",
+          compile_flags,
+          vim.fn.shellescape(filename),
+          vim.fn.shellescape(filepath),
+          linker_flags,
+          vim.fn.shellescape(filename))
+        
+        compile_cmd = compile_cmd:gsub("%s+", " "):gsub("^%s+", "")
+        return compile_cmd
       end,
       build = function()
         local cpp_files = vim.fn.globpath(".", "*.cpp", false, true)
@@ -56,12 +101,20 @@ local defaults = {
         if binary_name == "" then
           binary_name = default_name
         end
-        return "g++ -g " .. table.concat(cpp_files, " ") .. " -o " .. vim.fn.shellescape(binary_name) .. " && ./" .. vim.fn.shellescape(binary_name)
+        
+        local flags = M.config.add_flags.cpp or { compile_flags = {}, linker_flags = {} }
+        local compile_flags = table.concat(flags.compile_flags, " ")
+        local linker_flags = table.concat(flags.linker_flags, " ")
+        
+        return "g++ -g " .. compile_flags .. " " .. table.concat(cpp_files, " ") .. " " .. linker_flags .. " -o " .. vim.fn.shellescape(binary_name) .. " && ./" .. vim.fn.shellescape(binary_name)
       end,
       debug = function()
         local filename = vim.fn.expand("%:t:r")
+        local flags = M.config.add_flags.cpp or { debug_flags = {} }
+        local debug_flags = table.concat(flags.debug_flags, " ")
+        
         if vim.g.has_compiled then
-          return string.format("gdb -q ./%s", filename)
+          return string.format("gdb -q %s ./%s", debug_flags, filename)
         else
           vim.notify("Error. No executable found. Compile first!", vim.log.levels.ERROR)
         end
@@ -70,7 +123,21 @@ local defaults = {
     go = {
       compile = function()
         local filepath = vim.fn.expand("%:p")
-        return string.format("go run %s", vim.fn.shellescape(filepath))
+        local flags = M.config.add_flags.go or { compile_flags = {}, linker_flags = {} }
+        local compile_flags = table.concat(flags.compile_flags, " ")
+        local linker_flags = table.concat(flags.linker_flags, " ")
+        
+        local go_cmd
+        if compile_flags ~= "" or linker_flags ~= "" then
+          go_cmd = string.format("go run -gcflags=\"%s\" -ldflags=\"%s\" %s",
+            compile_flags,
+            linker_flags,
+            vim.fn.shellescape(filepath))
+        else
+          go_cmd = string.format("go run %s", vim.fn.shellescape(filepath))
+        end
+        
+        return go_cmd
       end,
     },
     python = {
@@ -120,6 +187,16 @@ function M.setup(user_opts)
         M.config.languages[lang] = vim.tbl_deep_extend("force", M.config.languages[lang], user_lang_config)
       else
         M.config.languages[lang] = user_lang_config
+      end
+    end
+  end
+  
+  if user_opts.add_flags then
+    for lang, flags in pairs(user_opts.add_flags) do
+      if M.config.add_flags[lang] then
+        M.config.add_flags[lang] = vim.tbl_deep_extend("force", M.config.add_flags[lang], flags)
+      else
+        M.config.add_flags[lang] = flags
       end
     end
   end
